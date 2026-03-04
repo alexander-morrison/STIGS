@@ -4,7 +4,7 @@ Ensures that the maximum size of the Windows Application Event Log is at least 3
 
 .DESCRIPTION
 This script verifies and enforces the Windows Event Log size policy for the Application log 
-in accordance with STIG-ID WN10-AU-000500.
+in accordance with STIG-ID WN11-AU-000500.
 
 .NOTES
 Author          : Alexander Morrison
@@ -20,7 +20,7 @@ STIG-ID         : WN11-CC-000315
 .TESTED ON
 Date(s) Tested  : 2026-03-04
 Tested By       : [Your Name or Team]
-Systems Tested  : Windows 10 / Windows 11
+Systems Tested  : Windows 11
 PowerShell Ver. : 5.1+
 
 .USAGE
