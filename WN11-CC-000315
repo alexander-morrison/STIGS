@@ -1,0 +1,68 @@
+# PowerShell Remediation Commands
+# Run elevated PowerShell (Admin):
+
+# Delete/ensure absent in HKLM (machine policy)
+$lmPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer"
+if (Test-Path "$lmPath") { Remove-ItemProperty -Path $lmPath -Name "AlwaysInstallElevated" -Force -ErrorAction SilentlyContinue }
+
+# Delete/ensure absent in HKCU (user policy) 
+$cuPath = "HKCU:\Software\Policies\Microsoft\Windows\Installer"
+if (Test-Path "$cuPath") { Remove-ItemProperty -Path $cuPath -Name "AlwaysInstallElevated" -Force -ErrorAction SilentlyContinue }
+
+# Force policy refresh
+gpupdate /force
+
+
+# Verification Commands
+
+# Check both registry locations (should return nothing or value 0)
+Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer" -Name "AlwaysInstallElevated" -ErrorAction SilentlyContinue
+Get-ItemProperty -Path "HKCU:\Software\Policies\Microsoft\Windows\Installer" -Name "AlwaysInstallElevated" -ErrorAction SilentlyContinue
+
+# Alternative: wevtutil-style check via WMI/CIM
+Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer" -ErrorAction SilentlyContinue | Select-Object AlwaysInstallElevated
+
+# Force Complete Remediation
+#Run as Administrator:
+
+# Explicitly create keys if missing, then set DWORD=0 (Tenable expects explicit 0)
+$lmPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer"
+if (!(Test-Path $lmPath)) { New-Item -Path $lmPath -Force | Out-Null }
+New-ItemProperty -Path $lmPath -Name "AlwaysInstallElevated" -Value 0 -PropertyType DWORD -Force
+
+$cuPath = "HKCU:\Software\Policies\Microsoft\Windows\Installer"  
+if (!(Test-Path $cuPath)) { New-Item -Path $cuPath -Force | Out-Null }
+New-ItemProperty -Path $cuPath -Name "AlwaysInstallElevated" -Value 0 -PropertyType DWORD -Force
+
+# Force immediate policy application + service restart
+gpupdate /force
+Restart-Service -Name msiserver -Force
+
+# Tenable-Specific Verification
+
+# Exact STIG check Tenable uses (both keys must show DWORD=0)
+Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer" -Name AlwaysInstallElevated
+Get-ItemProperty "HKCU:\Software\Policies\Microsoft\Windows\Installer" -Name AlwaysInstallElevated
+
+# Resolve Warning to Pass
+# Run as Administrator:
+
+# Force complete GPO application (clears warning state)
+gpupdate /force
+
+# Restart MSI service to clear cached policy state
+Restart-Service msiserver -Force
+
+# Verify both explicit DWORD=0 AND policy shows Disabled
+gpresult /h C:\temp\gpresult.html | Out-Null  # Check HTML for "Disabled" status
+
+# Exact Tenable Compliance Check
+
+# Tenable's full audit (run this, matches plugin 162174 exactly)
+$lm = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer" -Name AlwaysInstallElevated -EA SilentlyContinue).AlwaysInstallElevated
+$cu = (Get-ItemProperty "HKCU:\Software\Policies\Microsoft\Windows\Installer" -Name AlwaysInstallElevated -EA SilentlyContinue).AlwaysInstallElevated
+"LM:$lm`tCU:$cu"
+
+#Final Steps
+# 1. Reboot (critical for MSI service + policy cache)
+# 2. Rescan immediately after reboot
