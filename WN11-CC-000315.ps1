@@ -1,10 +1,9 @@
 <#
 .SYNOPSIS
-Ensures that the maximum size of the Windows Application Event Log is at least 32 MB (32768 KB).
+WN11-CC-000315 - The Windows Installer feature 'Always install with elevated privileges' must be disabled.
 
 .DESCRIPTION
-This script verifies and enforces the Windows Event Log size policy for the Application log 
-in accordance with STIG-ID WN11-AU-000500.
+WN11-CC-000315 means the Windows setting that allows programs to be installed with administrative (elevated) privileges automatically must be turned off to prevent unauthorized or risky software installations.
 
 .NOTES
 Author          : Alexander Morrison
